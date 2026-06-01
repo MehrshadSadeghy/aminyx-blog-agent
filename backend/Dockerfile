@@ -1,22 +1,25 @@
-FROM python:3.12-slim-bookworm AS base
+# Standard build — official Docker Hub + PyPI (no mirrors).
+FROM python:3.12-slim-bookworm
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app/backend/src \
+    RAYA_TRADE_ENVIRONMENT=docker
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project --compile-bytecode
+COPY requirements.txt ./requirements.txt
 
-ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app/backend/src
-ENV RAYA_TRADE_ENVIRONMENT=docker
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend ./backend/
+COPY backend/ ./backend/
 
 WORKDIR /app/backend
 
-EXPOSE 8080
+RUN chmod +x /app/backend/entrypoint.sh
 
-# Migrations run in __main__ before the app starts; override with RAYA_SKIP_MIGRATIONS=true
-CMD ["python", "-m", "raya_faraz_agent"]
+EXPOSE 8085
+
+ENV UVICORN_WORKERS=7
+
+CMD ["/app/backend/entrypoint.sh"]

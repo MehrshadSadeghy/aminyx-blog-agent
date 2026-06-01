@@ -1,36 +1,76 @@
-# Keep in sync with docker-compose.yml
+# Pars stack — Abrha Docker registry + PyPI mirror (docker.abrha.net / mirror.abrha.net).
+# Use when official Docker Hub / PyPI are slow or blocked.
+# Redis credentials match backend/config/docker.yaml and .env.example.
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: aminyx-suggestion-redis
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:-hjhsdg6f5t3r2u3g4r725trtg32rodvgsdb654}
+      - --databases
+      - "16"
+      - --appendonly
+      - "yes"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-hjhsdg6f5t3r2u3g4r725trtg32rodvgsdb654}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - suggestion
+    restart: unless-stopped
+
   aminyx-suggestion-agent:
     container_name: aminyx-suggestion-agent
     build:
       context: .
       dockerfile: ./backend/Dockerfile.pars
     ports:
-      - "8008:8080"
+      - "8085:8085"
     environment:
       RAYA_TRADE_ENVIRONMENT: docker
-      METIS_API_KEY: ${METIS_API_KEY}
-      METIS_BOT_ID: ${METIS_BOT_ID}
+      API_PORT: ${API_PORT:-8085}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_DB: ${REDIS_DB:-6}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-hjhsdg6f5t3r2u3g4r725trtg32rodvgsdb654}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      METIS_API_KEY: ${METIS_API_KEY:-}
+      METIS_BOT_ID: ${METIS_BOT_ID:-}
       METIS_SUGGESTION_BOT_ID: ${METIS_SUGGESTION_BOT_ID:-}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-7}
+    depends_on:
+      redis:
+        condition: service_healthy
     deploy:
       resources:
         limits:
           cpus: "3.0"
           memory: 2G
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8085/health')"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 20s
     networks:
-      - aminyx_shared
+      - suggestion
     restart: unless-stopped
 
 networks:
-  aminyx_shared:
-    external: true
-    name: aminyx_shared_network
+  suggestion:
+    driver: bridge
+
+volumes:
+  redis_data:

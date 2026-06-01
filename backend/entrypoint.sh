@@ -2,7 +2,7 @@
 set -e
 
 echo "Starting uvicorn with ${UVICORN_WORKERS:-7} workers..."
-exec uvicorn raya_faraz_agent.app:app \
+exec uvicorn aminyx_suggestion_agent.app:app \
     --host 0.0.0.0 \
-    --port 8080 \
+    --port "${API_PORT:-8085}" \
     --workers "${UVICORN_WORKERS:-7}"

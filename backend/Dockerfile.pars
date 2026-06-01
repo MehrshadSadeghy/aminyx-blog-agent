@@ -1,3 +1,4 @@
+# Pars build — Abrha registry + PyPI mirror (for restricted networks).
 FROM docker.abrha.net/python:3.12-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
@@ -20,7 +21,7 @@ WORKDIR /app/backend
 
 RUN chmod +x /app/backend/entrypoint.sh
 
-EXPOSE 8080
+EXPOSE 8085
 
 ENV UVICORN_WORKERS=7
 
