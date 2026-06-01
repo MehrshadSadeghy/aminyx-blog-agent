@@ -24,9 +24,6 @@ services:
       ADMIN_API_KEY: ${ADMIN_API_KEY:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-7}
-    depends_on:
-      redis:
-        condition: service_healthy
     deploy:
       resources:
         limits:
