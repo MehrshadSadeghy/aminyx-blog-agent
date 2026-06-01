@@ -40,11 +40,17 @@ class SuggestionAgentService:
         business_data: BusinessData,
         callback_url: HttpUrl,
         correlation_id: str | None = None,
+        callback_method: str = "POST",
+        callback_headers: dict[str, str] | None = None,
+        goal: list[str] | None = None,
     ) -> SuggestionJob:
         job = SuggestionJob(
             business_data=business_data,
             callback_url=callback_url,
             correlation_id=correlation_id,
+            callback_method=callback_method,
+            callback_headers=callback_headers or {},
+            goal=goal or [],
         )
         return await self._jobs.create(job)
 
@@ -64,7 +70,7 @@ class SuggestionAgentService:
             return
 
         try:
-            topics = await self._generate_topics(job.business_data)
+            topics = await self._generate_topics(job.business_data, job.goal)
             job = await self._jobs.update_status(
                 job_id,
                 status=JobStatus.COMPLETE,
@@ -84,17 +90,29 @@ class SuggestionAgentService:
             if job is not None:
                 await self._deliver_callback(job)
 
-    async def _generate_topics(self, business_data: BusinessData) -> list[TopicSuggestion]:
-        prompt = self._build_prompt(business_data)
+    async def _generate_topics(
+        self,
+        business_data: BusinessData,
+        goal: list[str] | None = None,
+    ) -> list[TopicSuggestion]:
+        prompt = self._build_prompt(business_data, goal)
         content = await self._run(self._gemini.generate_text(prompt))
         return self._parse_topics(content, business_data)
 
-    def _build_prompt(self, business_data: BusinessData) -> str:
+    def _build_prompt(
+        self,
+        business_data: BusinessData,
+        goal: list[str] | None = None,
+    ) -> str:
         payload = business_data.model_dump(mode="json", exclude_none=True)
+        goal_line = ""
+        if goal:
+            goal_line = f"Content goals: {', '.join(goal)}\n\n"
         return (
             "You are a content strategist. Based on the business website data below, "
             "suggest 5 to 8 blog or content topic ideas that would attract the target audience "
             "and support SEO goals.\n\n"
+            f"{goal_line}"
             f"Business data JSON:\n{json.dumps(payload, ensure_ascii=False, indent=2)}\n\n"
             "Return ONLY a JSON array of objects with this shape:\n"
             '[{"title": "...", "description": "...", "keywords": ["...", "..."]}]\n'
@@ -180,7 +198,12 @@ class SuggestionAgentService:
             "error": job.error,
         }
         try:
-            await self._callback.deliver(str(job.callback_url), payload)
+            await self._callback.deliver(
+                str(job.callback_url),
+                payload,
+                method=job.callback_method,
+                headers=job.callback_headers or None,
+            )
         except Exception:
             LOGGER.exception("Callback delivery failed for job %s", job.id)
 

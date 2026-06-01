@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from aminyx_suggestion_agent.ai_agent.domain import BusinessData, JobStatus
 
@@ -144,10 +144,47 @@ class BusinessDataDTO(ApiModel):
         return BusinessData.model_validate(self.model_dump(by_alias=False))
 
 
+class CallbackDTO(ApiModel):
+    callback_url: HttpUrl = Field(alias="callbackUrl")
+    callback_method: str = Field(default="POST", alias="callbackMethod")
+    callback_headers: list[list[str]] = Field(default_factory=list, alias="callbackHeaders")
+
+    def header_map(self) -> dict[str, str]:
+        headers: dict[str, str] = {}
+        for pair in self.callback_headers:
+            if len(pair) >= 2:
+                headers[str(pair[0])] = str(pair[1])
+        return headers
+
+
 class CreateSuggestionJobDTO(ApiModel):
     business_data: BusinessDataDTO = Field(alias="businessData")
-    callback_url: HttpUrl = Field(alias="callbackUrl")
     correlation_id: str | None = Field(default=None, alias="correlationId")
+    goal: list[str] = Field(default_factory=list)
+    callback_url: HttpUrl | None = Field(default=None, alias="callbackUrl")
+    callback: CallbackDTO | None = None
+
+    @model_validator(mode="after")
+    def require_callback(self) -> CreateSuggestionJobDTO:
+        if self.callback is None and self.callback_url is None:
+            raise ValueError("Either callbackUrl or callback is required.")
+        return self
+
+    def resolved_callback_url(self) -> HttpUrl:
+        if self.callback is not None:
+            return self.callback.callback_url
+        assert self.callback_url is not None
+        return self.callback_url
+
+    def resolved_callback_method(self) -> str:
+        if self.callback is not None:
+            return self.callback.callback_method.upper()
+        return "POST"
+
+    def resolved_callback_headers(self) -> dict[str, str]:
+        if self.callback is not None:
+            return self.callback.header_map()
+        return {}
 
 
 class TopicSuggestionDTO(ApiModel):

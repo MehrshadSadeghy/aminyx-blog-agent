@@ -16,9 +16,21 @@ class CallbackClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def deliver(self, callback_url: str, payload: dict[str, Any]) -> None:
+    async def deliver(
+        self,
+        callback_url: str,
+        payload: dict[str, Any],
+        *,
+        method: str = "POST",
+        headers: dict[str, str] | None = None,
+    ) -> None:
         try:
-            response = await self._client.post(callback_url, json=payload)
+            response = await self._client.request(
+                method.upper(),
+                callback_url,
+                json=payload,
+                headers=headers or None,
+            )
             response.raise_for_status()
         except Exception:
             LOGGER.exception("Failed to deliver callback to %s", callback_url)

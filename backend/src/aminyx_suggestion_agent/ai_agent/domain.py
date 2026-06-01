@@ -154,6 +154,9 @@ class SuggestionJob(BaseModel):
     status: JobStatus = JobStatus.PENDING
     business_data: BusinessData
     callback_url: HttpUrl
+    callback_method: str = "POST"
+    callback_headers: dict[str, str] = Field(default_factory=dict)
+    goal: list[str] = Field(default_factory=list)
     correlation_id: str | None = None
     topics: list[TopicSuggestion] = Field(default_factory=list)
     error: str | None = None

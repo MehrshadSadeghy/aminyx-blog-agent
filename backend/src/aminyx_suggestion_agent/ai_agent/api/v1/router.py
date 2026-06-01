@@ -34,8 +34,11 @@ async def create_suggestion_job(
 ) -> JobAcceptedDTO:
     job = await service.create_job(
         business_data=body.business_data.to_domain(),
-        callback_url=body.callback_url,
+        callback_url=body.resolved_callback_url(),
         correlation_id=body.correlation_id,
+        callback_method=body.resolved_callback_method(),
+        callback_headers=body.resolved_callback_headers(),
+        goal=body.goal,
     )
     return JobAcceptedDTO(job_id=job.id, status=JobStatus.PENDING)
 
