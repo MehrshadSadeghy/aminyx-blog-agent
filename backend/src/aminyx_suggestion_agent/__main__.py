@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 
-from raya_faraz_agent.container import AppContainer
+from aminyx_suggestion_agent.container import AppContainer
 
 LOGGER = logging.getLogger(__name__)
 

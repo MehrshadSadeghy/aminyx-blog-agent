@@ -4,7 +4,7 @@ from uuid import UUID
 
 from redis.asyncio import Redis
 
-from raya_faraz_agent.ai_agent.domain import JobStatus, SuggestionJob
+from aminyx_suggestion_agent.ai_agent.domain import JobStatus, SuggestionJob
 
 _JOB_KEY_PREFIX = "raya:suggestion:job:"
 _QUEUE_KEY = "raya:suggestion:queue"

@@ -7,15 +7,15 @@ from uuid import UUID
 
 from pydantic import HttpUrl
 
-from raya_faraz_agent.ai_agent.domain import (
+from aminyx_suggestion_agent.ai_agent.domain import (
     BusinessData,
     JobStatus,
     SuggestionJob,
     TopicSuggestion,
 )
-from raya_faraz_agent.ai_agent.infrastructure.callback_client import CallbackClient
-from raya_faraz_agent.ai_agent.infrastructure.metis_client import MetisChatClient
-from raya_faraz_agent.ai_agent.repository.redis import SuggestionJobRepositoryRedis
+from aminyx_suggestion_agent.ai_agent.infrastructure.callback_client import CallbackClient
+from aminyx_suggestion_agent.ai_agent.infrastructure.metis_client import MetisChatClient
+from aminyx_suggestion_agent.ai_agent.repository.redis import SuggestionJobRepositoryRedis
 
 LOGGER = logging.getLogger(__name__)
 

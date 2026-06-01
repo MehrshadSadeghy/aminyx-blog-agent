@@ -1,7 +1,7 @@
 from fastapi import Depends, Header, HTTPException, Request
 
-from raya_faraz_agent.ai_agent.service import SuggestionAgentService
-from raya_faraz_agent.config import Config
+from aminyx_suggestion_agent.ai_agent.service import SuggestionAgentService
+from aminyx_suggestion_agent.config import Config
 
 
 def require_bearer(

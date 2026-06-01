@@ -4,18 +4,18 @@ from functools import lru_cache
 
 from redis.asyncio import Redis
 
-from raya_faraz_agent.ai_agent.api.v1.router import router as ai_router
-from raya_faraz_agent.ai_agent.infrastructure.callback_client import CallbackClient
-from raya_faraz_agent.ai_agent.infrastructure.metis_client import MetisChatClient
-from raya_faraz_agent.ai_agent.repository.redis import SuggestionJobRepositoryRedis
-from raya_faraz_agent.ai_agent.service import SuggestionAgentService
-from raya_faraz_agent.ai_agent.worker import SuggestionJobWorker
-from raya_faraz_agent.config import Config, MetisConfig
-from raya_faraz_agent.core.db.redis import RedisDatabase
-from raya_faraz_agent.core.manager.ai_agent_manager import AIManager
-from raya_faraz_agent.core.manager.api_manager import APIManager
-from raya_faraz_agent.core.manager.base import Manager
-from raya_faraz_agent.core.manager.redis_manager import RedisManager
+from aminyx_suggestion_agent.ai_agent.api.v1.router import router as ai_router
+from aminyx_suggestion_agent.ai_agent.infrastructure.callback_client import CallbackClient
+from aminyx_suggestion_agent.ai_agent.infrastructure.metis_client import MetisChatClient
+from aminyx_suggestion_agent.ai_agent.repository.redis import SuggestionJobRepositoryRedis
+from aminyx_suggestion_agent.ai_agent.service import SuggestionAgentService
+from aminyx_suggestion_agent.ai_agent.worker import SuggestionJobWorker
+from aminyx_suggestion_agent.config import Config, MetisConfig
+from aminyx_suggestion_agent.core.db.redis import RedisDatabase
+from aminyx_suggestion_agent.core.manager.ai_agent_manager import AIManager
+from aminyx_suggestion_agent.core.manager.api_manager import APIManager
+from aminyx_suggestion_agent.core.manager.base import Manager
+from aminyx_suggestion_agent.core.manager.redis_manager import RedisManager
 
 LOGGER = logging.getLogger(__name__)
 

@@ -7,11 +7,11 @@ import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from raya_faraz_agent.config import APIConfig
-from raya_faraz_agent.core.manager.base import Manager
+from aminyx_suggestion_agent.config import APIConfig
+from aminyx_suggestion_agent.core.manager.base import Manager
 
 if TYPE_CHECKING:
-    from raya_faraz_agent.container import AppContainer
+    from aminyx_suggestion_agent.container import AppContainer
 
 LOGGER = logging.getLogger(__name__)
 

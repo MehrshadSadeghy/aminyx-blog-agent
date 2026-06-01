@@ -3,17 +3,17 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from raya_faraz_agent.ai_agent.api.v1.dependency import (
+from aminyx_suggestion_agent.ai_agent.api.v1.dependency import (
     get_suggestion_service,
     require_bearer,
 )
-from raya_faraz_agent.ai_agent.api.v1.dto import (
+from aminyx_suggestion_agent.ai_agent.api.v1.dto import (
     CreateSuggestionJobDTO,
     JobAcceptedDTO,
     JobStatusDTO,
 )
-from raya_faraz_agent.ai_agent.domain import JobStatus
-from raya_faraz_agent.ai_agent.service import SuggestionAgentService
+from aminyx_suggestion_agent.ai_agent.domain import JobStatus
+from aminyx_suggestion_agent.ai_agent.service import SuggestionAgentService
 
 router = APIRouter(
     prefix="/api/v1/agent",

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from raya_faraz_agent.ai_agent.service import SuggestionAgentService
+from aminyx_suggestion_agent.ai_agent.service import SuggestionAgentService
 
 LOGGER = logging.getLogger(__name__)
 

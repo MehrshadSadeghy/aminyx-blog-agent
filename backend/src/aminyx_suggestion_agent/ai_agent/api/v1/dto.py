@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
-from raya_faraz_agent.ai_agent.domain import BusinessData, JobStatus
+from aminyx_suggestion_agent.ai_agent.domain import BusinessData, JobStatus
 
 
 class ApiModel(BaseModel):
