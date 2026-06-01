@@ -66,11 +66,15 @@ services:
       start_period: 20s
     networks:
       - suggestion
+      - aminyx_shared
     restart: unless-stopped
 
 networks:
   suggestion:
     driver: bridge
+  aminyx_shared:
+    external: true
+    name: aminyx_shared_network
 
 volumes:
   redis_data:
