@@ -14,7 +14,7 @@ from aminyx_suggestion_agent.ai_agent.domain import (
     TopicSuggestion,
 )
 from aminyx_suggestion_agent.ai_agent.infrastructure.callback_client import CallbackClient
-from aminyx_suggestion_agent.ai_agent.infrastructure.metis_client import MetisChatClient
+from aminyx_suggestion_agent.ai_agent.infrastructure.gemini_client import GeminiClient
 from aminyx_suggestion_agent.ai_agent.repository.redis import SuggestionJobRepositoryRedis
 
 LOGGER = logging.getLogger(__name__)
@@ -25,15 +25,13 @@ class SuggestionAgentService:
         self,
         *,
         jobs: SuggestionJobRepositoryRedis,
-        metis: MetisChatClient,
+        gemini: GeminiClient,
         callback_client: CallbackClient,
-        suggestion_bot_id: str,
         parallel_gate: asyncio.Semaphore | None = None,
     ) -> None:
         self._jobs = jobs
-        self._metis = metis
+        self._gemini = gemini
         self._callback = callback_client
-        self._bot_id = suggestion_bot_id
         self._parallel_gate = parallel_gate
 
     async def create_job(
@@ -88,15 +86,8 @@ class SuggestionAgentService:
 
     async def _generate_topics(self, business_data: BusinessData) -> list[TopicSuggestion]:
         prompt = self._build_prompt(business_data)
-        session = await self._run(self._metis.create_session(bot_id=self._bot_id))
-        try:
-            reply = await self._run(self._metis.send_message(session.id, prompt))
-            return self._parse_topics(reply.content, business_data)
-        finally:
-            try:
-                await self._run(self._metis.delete_session(session.id))
-            except Exception:
-                pass
+        content = await self._run(self._gemini.generate_text(prompt))
+        return self._parse_topics(content, business_data)
 
     def _build_prompt(self, business_data: BusinessData) -> str:
         payload = business_data.model_dump(mode="json", exclude_none=True)
@@ -143,7 +134,7 @@ class SuggestionAgentService:
             except json.JSONDecodeError:
                 pass
 
-        LOGGER.warning("Could not parse topics from Metis response — using fallback")
+        LOGGER.warning("Could not parse topics from Gemini response — using fallback")
         return self._fallback_topics(business_data)
 
     def _fallback_topics(self, business_data: BusinessData) -> list[TopicSuggestion]:

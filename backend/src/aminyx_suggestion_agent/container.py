@@ -6,11 +6,11 @@ from redis.asyncio import Redis
 
 from aminyx_suggestion_agent.ai_agent.api.v1.router import router as ai_router
 from aminyx_suggestion_agent.ai_agent.infrastructure.callback_client import CallbackClient
-from aminyx_suggestion_agent.ai_agent.infrastructure.metis_client import MetisChatClient
+from aminyx_suggestion_agent.ai_agent.infrastructure.gemini_client import GeminiClient
 from aminyx_suggestion_agent.ai_agent.repository.redis import SuggestionJobRepositoryRedis
 from aminyx_suggestion_agent.ai_agent.service import SuggestionAgentService
 from aminyx_suggestion_agent.ai_agent.worker import SuggestionJobWorker
-from aminyx_suggestion_agent.config import Config, MetisConfig
+from aminyx_suggestion_agent.config import Config, GeminiConfig
 from aminyx_suggestion_agent.core.db.redis import RedisDatabase
 from aminyx_suggestion_agent.core.manager.ai_agent_manager import AIManager
 from aminyx_suggestion_agent.core.manager.api_manager import APIManager
@@ -69,16 +69,16 @@ class AppContainer:
 
     @singleton
     def get_ai_manager(self) -> AIManager:
-        return AIManager(metis_config=self.get_config().metis)
+        return AIManager(gemini_config=self.get_config().gemini)
 
     @singleton
-    def get_metis_client(self) -> MetisChatClient:
-        metis_cfg = self.get_config().metis
-        return MetisChatClient(
-            base_url=metis_cfg.base_url,
-            api_key=MetisConfig.resolved_api_key(),
-            bot_id=metis_cfg.resolved_bot_id(),
-            timeout_seconds=metis_cfg.timeout_seconds,
+    def get_gemini_client(self) -> GeminiClient:
+        gemini_cfg = self.get_config().gemini
+        return GeminiClient(
+            api_key=GeminiConfig.resolved_api_key(),
+            model=gemini_cfg.resolved_model(),
+            temperature=gemini_cfg.temperature,
+            max_output_tokens=gemini_cfg.max_output_tokens,
         )
 
     @singleton
@@ -96,12 +96,10 @@ class AppContainer:
 
     @singleton
     def get_suggestion_service(self) -> SuggestionAgentService:
-        metis_cfg = self.get_config().metis
         return SuggestionAgentService(
             jobs=self.get_job_repository(),
-            metis=self.get_metis_client(),
+            gemini=self.get_gemini_client(),
             callback_client=self.get_callback_client(),
-            suggestion_bot_id=metis_cfg.resolved_suggestion_bot_id(),
             parallel_gate=self.get_ai_manager().parallel_invoke_gate(),
         )
 
@@ -123,17 +121,11 @@ class AppContainer:
 
     def validate_runtime(self) -> None:
         self.validate_service_registry()
-        MetisConfig.resolved_api_key()
-        if not self.get_config().metis.resolved_bot_id():
-            raise RuntimeError("METIS_BOT_ID is not configured.")
+        GeminiConfig.resolved_api_key()
         if not Config.resolved_admin_api_key():
             raise RuntimeError("ADMIN_API_KEY is not configured.")
         LOGGER.info("Container runtime validation passed")
 
     async def shutdown(self) -> None:
         await self.get_callback_client().aclose()
-        try:
-            client = self.get_metis_client()
-        except TypeError:
-            return
-        await client.aclose()
+        await self.get_gemini_client().aclose()

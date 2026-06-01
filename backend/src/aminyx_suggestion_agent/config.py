@@ -6,6 +6,7 @@ import yaml
 from pathlib import Path
 from pydantic_settings import SettingsConfigDict
 
+
 def backend_root_directory() -> Path:
     """Path to the backend/ folder (contains config/, data/, Dockerfile context)."""
     return Path(__file__).resolve().parents[2]
@@ -24,6 +25,7 @@ class APIConfig(BaseModel):
     backlog: int = Field(default=4096, ge=128)
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
 
+
 class RedisConfig(BaseModel):
     host: str
     port: int
@@ -31,16 +33,19 @@ class RedisConfig(BaseModel):
     password: str = ""
     decode_responses: bool = True
 
-class MetisConfig(BaseModel):
-    """Metis chat API (https://api.metisai.ir or https://api.tapsage.com)."""
 
-    base_url: str = Field(default="https://api.metisai.ir")
-    bot_id: str = Field(default="")
-    suggestion_bot_id: str | None = None
+class AdminConfig(BaseModel):
+    enabled: bool = True
+
+
+class GeminiConfig(BaseModel):
+    model: str = Field(default="gemini-2.5-flash")
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     timeout_seconds: float = Field(default=120.0, ge=5.0)
+    max_output_tokens: int = Field(default=8192, ge=256)
     max_parallel_requests: int | None = Field(
         default=100,
-        description="Concurrent Metis HTTP calls; set null to disable throttling.",
+        description="Concurrent Gemini calls; set null to disable throttling.",
     )
 
     @field_validator("max_parallel_requests")
@@ -51,27 +56,15 @@ class MetisConfig(BaseModel):
             raise ValueError(msg)
         return limit
 
-    def resolved_bot_id(self) -> str:
-        return os.environ.get("METIS_BOT_ID", self.bot_id).strip()
-
-    def resolved_suggestion_bot_id(self) -> str:
-        env_bot = os.environ.get("METIS_SUGGESTION_BOT_ID", "").strip()
-        if env_bot:
-            return env_bot
-        if self.suggestion_bot_id:
-            return self.suggestion_bot_id.strip()
-        return self.resolved_bot_id()
+    def resolved_model(self) -> str:
+        return os.environ.get("GEMINI_MODEL", self.model).strip()
 
     @staticmethod
     def resolved_api_key() -> str:
-        key = os.environ.get("METIS_API_KEY", "").strip()
+        key = os.environ.get("GOOGLE_API_KEY", "").strip()
         if not key:
-            raise RuntimeError("METIS_API_KEY is not set in environment.")
+            raise RuntimeError("GOOGLE_API_KEY is not set in environment.")
         return key
-
-
-class AdminConfig(BaseModel):
-    enabled: bool = True
 
 
 class SuggestionAgentConfig(BaseModel):
@@ -84,17 +77,15 @@ class Config(BaseModel):
         env_prefix="RAYA_TRADE_APP_",
     )
 
-
     api: APIConfig
     redis: RedisConfig
-    metis: MetisConfig = Field(default_factory=MetisConfig)
+    gemini: GeminiConfig = Field(default_factory=GeminiConfig)
     admin: AdminConfig = Field(default_factory=AdminConfig)
     suggestion: SuggestionAgentConfig = Field(default_factory=SuggestionAgentConfig)
 
     @staticmethod
     def resolved_admin_api_key() -> str | None:
         return os.environ.get("ADMIN_API_KEY", "").strip() or None
-
 
     @classmethod
     def from_yaml(cls, environment: str):
