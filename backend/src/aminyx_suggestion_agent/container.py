@@ -1,0 +1,139 @@
+import logging
+import os
+from functools import lru_cache
+
+from redis.asyncio import Redis
+
+from raya_faraz_agent.ai_agent.api.v1.router import router as ai_router
+from raya_faraz_agent.ai_agent.infrastructure.callback_client import CallbackClient
+from raya_faraz_agent.ai_agent.infrastructure.metis_client import MetisChatClient
+from raya_faraz_agent.ai_agent.repository.redis import SuggestionJobRepositoryRedis
+from raya_faraz_agent.ai_agent.service import SuggestionAgentService
+from raya_faraz_agent.ai_agent.worker import SuggestionJobWorker
+from raya_faraz_agent.config import Config, MetisConfig
+from raya_faraz_agent.core.db.redis import RedisDatabase
+from raya_faraz_agent.core.manager.ai_agent_manager import AIManager
+from raya_faraz_agent.core.manager.api_manager import APIManager
+from raya_faraz_agent.core.manager.base import Manager
+from raya_faraz_agent.core.manager.redis_manager import RedisManager
+
+LOGGER = logging.getLogger(__name__)
+
+singleton = lru_cache
+
+REQUIRED_SERVICE_GETTERS: tuple[str, ...] = (
+    "get_config",
+    "get_redis_manager",
+    "get_ai_manager",
+    "get_suggestion_service",
+)
+
+
+class AppContainer:
+
+    @singleton
+    def get_config(self) -> Config:
+        environment = os.environ.get("RAYA_TRADE_ENVIRONMENT", "config")
+        return Config.from_yaml(environment=environment)
+
+    @singleton
+    def get_api_manager(self) -> APIManager:
+        return APIManager(
+            api_config=self.get_config().api,
+            container=self,
+            routers=[ai_router],
+        )
+
+    @singleton
+    def get_redis_config(self):
+        return self.get_config().redis
+
+    @singleton
+    def get_redis_provider(self) -> RedisDatabase:
+        return RedisDatabase(self.get_redis_config())
+
+    @singleton
+    def get_redis_manager(self) -> RedisManager:
+        return RedisManager(provider=self.get_redis_provider())
+
+    def get_redis(self) -> Redis:
+        return self.get_redis_manager().get_client()
+
+    @singleton
+    def get_managers(self) -> list[Manager]:
+        return [
+            self.get_ai_manager(),
+            self.get_redis_manager(),
+            self.get_api_manager(),
+        ]
+
+    @singleton
+    def get_ai_manager(self) -> AIManager:
+        return AIManager(metis_config=self.get_config().metis)
+
+    @singleton
+    def get_metis_client(self) -> MetisChatClient:
+        metis_cfg = self.get_config().metis
+        return MetisChatClient(
+            base_url=metis_cfg.base_url,
+            api_key=MetisConfig.resolved_api_key(),
+            bot_id=metis_cfg.resolved_bot_id(),
+            timeout_seconds=metis_cfg.timeout_seconds,
+        )
+
+    @singleton
+    def get_callback_client(self) -> CallbackClient:
+        cfg = self.get_config().suggestion
+        return CallbackClient(timeout_seconds=cfg.callback_timeout_seconds)
+
+    @singleton
+    def get_job_repository(self) -> SuggestionJobRepositoryRedis:
+        cfg = self.get_config().suggestion
+        return SuggestionJobRepositoryRedis(
+            redis=self.get_redis(),
+            ttl_seconds=cfg.job_ttl_seconds,
+        )
+
+    @singleton
+    def get_suggestion_service(self) -> SuggestionAgentService:
+        metis_cfg = self.get_config().metis
+        return SuggestionAgentService(
+            jobs=self.get_job_repository(),
+            metis=self.get_metis_client(),
+            callback_client=self.get_callback_client(),
+            suggestion_bot_id=metis_cfg.resolved_suggestion_bot_id(),
+            parallel_gate=self.get_ai_manager().parallel_invoke_gate(),
+        )
+
+    @singleton
+    def get_suggestion_worker(self) -> SuggestionJobWorker:
+        return SuggestionJobWorker(self.get_suggestion_service())
+
+    def validate_service_registry(self) -> None:
+        missing = [
+            name
+            for name in REQUIRED_SERVICE_GETTERS
+            if not callable(getattr(self, name, None))
+        ]
+        if missing:
+            raise RuntimeError(
+                f"AppContainer is missing required service getters: {', '.join(missing)}"
+            )
+        LOGGER.debug("Service registry validated (%d getters)", len(REQUIRED_SERVICE_GETTERS))
+
+    def validate_runtime(self) -> None:
+        self.validate_service_registry()
+        MetisConfig.resolved_api_key()
+        if not self.get_config().metis.resolved_bot_id():
+            raise RuntimeError("METIS_BOT_ID is not configured.")
+        if not Config.resolved_admin_api_key():
+            raise RuntimeError("ADMIN_API_KEY is not configured.")
+        LOGGER.info("Container runtime validation passed")
+
+    async def shutdown(self) -> None:
+        await self.get_callback_client().aclose()
+        try:
+            client = self.get_metis_client()
+        except TypeError:
+            return
+        await client.aclose()

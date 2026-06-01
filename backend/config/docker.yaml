@@ -1,0 +1,27 @@
+api:
+  debug: false
+  host: 0.0.0.0
+  port: 8080
+  title: Aminyx Suggestion Agent
+  version: 0.1.0
+  cors_origins:
+    - "*"
+
+redis:
+  host: redis
+  port: 6379
+  db: 6
+  password: hjhsdg6f5t3r2u3g4r725trtg32rodvgsdb654
+
+metis:
+  base_url: "https://api.metisai.ir"
+  bot_id: ""
+  timeout_seconds: 120
+  max_parallel_requests: 100
+
+admin:
+  enabled: true
+
+suggestion:
+  job_ttl_seconds: 86400
+  callback_timeout_seconds: 30

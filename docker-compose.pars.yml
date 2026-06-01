@@ -1,0 +1,36 @@
+# Keep in sync with docker-compose.yml
+
+services:
+  aminyx-suggestion-agent:
+    container_name: aminyx-suggestion-agent
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile.pars
+    ports:
+      - "8008:8080"
+    environment:
+      RAYA_TRADE_ENVIRONMENT: docker
+      METIS_API_KEY: ${METIS_API_KEY}
+      METIS_BOT_ID: ${METIS_BOT_ID}
+      METIS_SUGGESTION_BOT_ID: ${METIS_SUGGESTION_BOT_ID:-}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    deploy:
+      resources:
+        limits:
+          cpus: "3.0"
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - aminyx_shared
+    restart: unless-stopped
+
+networks:
+  aminyx_shared:
+    external: true
+    name: aminyx_shared_network
