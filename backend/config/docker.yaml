@@ -26,3 +26,8 @@ admin:
 suggestion:
   job_ttl_seconds: 86400
   callback_timeout_seconds: 30
+
+strategy_content:
+  job_ttl_seconds: 86400
+  callback_timeout_seconds: 30
+  system_prompt_path: data/agent/strategy-content-instructions.md

@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from aminyx_suggestion_agent.ai_agent.api.v1.router import router as ai_router
+from aminyx_suggestion_agent.strategy_content.api.v1.router import router as strategy_content_router
 from aminyx_suggestion_agent.container import AppContainer
 
 level = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -39,11 +40,16 @@ async def lifespan(application: FastAPI):
     worker.start()
     application.state.suggestion_worker = worker
 
+    strategy_worker = container.get_strategy_content_worker()
+    strategy_worker.start()
+    application.state.strategy_content_worker = strategy_worker
+
     LOGGER.info("Worker ready")
     yield
     LOGGER.info("Worker shutting down")
 
     await worker.stop()
+    await strategy_worker.stop()
 
     for manager in infra_managers:
         await manager.teardown()
@@ -81,4 +87,5 @@ async def health_check() -> dict[str, str]:
 
 
 app.include_router(ai_router)
+app.include_router(strategy_content_router)
 app.state.container = container

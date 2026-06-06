@@ -72,6 +72,15 @@ class SuggestionAgentConfig(BaseModel):
     callback_timeout_seconds: float = Field(default=30.0, ge=5.0)
 
 
+class StrategyContentAgentConfig(BaseModel):
+    job_ttl_seconds: int = Field(default=86_400, ge=300)
+    callback_timeout_seconds: float = Field(default=30.0, ge=5.0)
+    system_prompt_path: str = Field(
+        default="data/agent/strategy-content-instructions.md",
+        description="Path relative to backend/ for the strategy content system prompt.",
+    )
+
+
 class Config(BaseModel):
     model_config = SettingsConfigDict(
         env_prefix="RAYA_TRADE_APP_",
@@ -82,6 +91,7 @@ class Config(BaseModel):
     gemini: GeminiConfig = Field(default_factory=GeminiConfig)
     admin: AdminConfig = Field(default_factory=AdminConfig)
     suggestion: SuggestionAgentConfig = Field(default_factory=SuggestionAgentConfig)
+    strategy_content: StrategyContentAgentConfig = Field(default_factory=StrategyContentAgentConfig)
 
     @staticmethod
     def resolved_admin_api_key() -> str | None:
