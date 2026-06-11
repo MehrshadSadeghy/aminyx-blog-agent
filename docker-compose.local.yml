@@ -1,7 +1,18 @@
 # Local development and pytest runs.
-# Example:
+#
+# Recommended (no shell glob — works inside docker compose run):
 #   docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
-#     pytest test/crud test/test_*_endpoints.py -c test/pytest.ini -v
+#     pytest -c test/pytest.ini -v
+#
+# Alternative with explicit paths (also works):
+#   docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
+#     pytest test/crud test/test_health_endpoints.py test/test_agent_suggestion_endpoints.py \
+#            test/test_strategy_content_endpoints.py test/test_system_endpoints.py \
+#            -c test/pytest.ini -v
+#
+# If you need a glob, wrap in sh -c (compose does not expand *):
+#   docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
+#     sh -c 'pytest test/crud test/test_*_endpoints.py -c test/pytest.ini -v'
 
 services:
   redis:

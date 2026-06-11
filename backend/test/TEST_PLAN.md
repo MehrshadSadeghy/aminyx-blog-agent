@@ -36,9 +36,28 @@ require_bearer -> Config.resolved_admin_api_key (all /api/v1/agent/* routes)
 
 ## Run Command
 
+`docker compose run` does **not** expand shell globs. Use one of these:
+
 ```bash
+# Recommended — pytest.ini already targets crud + endpoint tests
 docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
-  pytest test/crud test/test_*_endpoints.py -c test/pytest.ini -v
+  pytest -c test/pytest.ini -v
+
+# Or explicit file list (no glob)
+docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
+  pytest test/crud test/test_health_endpoints.py test/test_agent_suggestion_endpoints.py \
+         test/test_strategy_content_endpoints.py test/test_system_endpoints.py \
+         -c test/pytest.ini -v
+
+# Glob only works inside sh -c
+docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
+  sh -c 'pytest test/crud test/test_*_endpoints.py -c test/pytest.ini -v'
+```
+
+After pulling test files to the server, rebuild the image so they are copied into the container:
+
+```bash
+docker compose -f docker-compose.local.yml build --no-cache backend
 ```
 
 ## Coverage Notes
