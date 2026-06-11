@@ -1,18 +1,31 @@
 # Local development and pytest runs.
 #
-# Recommended (no shell glob — works inside docker compose run):
+# Easiest — dedicated test runner (37 tests, no glob issues):
+#   docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps test
+#
+# Or via script on backend service:
+#   docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend ./run_tests.sh -v
+#
+# Or pytest directly (NO glob — compose does not expand *):
 #   docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
 #     pytest -c test/pytest.ini -v
-#
-# Alternative with explicit paths (also works):
-#   docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
-#     pytest test/crud test/test_health_endpoints.py test/test_agent_suggestion_endpoints.py \
-#            test/test_strategy_content_endpoints.py test/test_system_endpoints.py \
-#            -c test/pytest.ini -v
-#
-# If you need a glob, wrap in sh -c (compose does not expand *):
-#   docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
-#     sh -c 'pytest test/crud test/test_*_endpoints.py -c test/pytest.ini -v'
+
+x-backend-build: &backend-build
+  context: .
+  dockerfile: ./backend/Dockerfile
+
+x-backend-env: &backend-env
+  RAYA_TRADE_ENVIRONMENT: docker
+  API_PORT: ${API_PORT:-8085}
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_DB: ${REDIS_DB:-6}
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-hjhsdg6f5t3r2u3g4r725trtg32rodvgsdb654}
+  GOOGLE_API_KEY: ${GOOGLE_API_KEY:-test-google-api-key}
+  GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+  ADMIN_API_KEY: ${ADMIN_API_KEY:-local-test-admin-key}
+  CORS_ORIGINS: ${CORS_ORIGINS:-}
+  UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
 
 services:
   redis:
@@ -28,24 +41,21 @@ services:
 
   backend:
     container_name: aminyx-suggestion-agent-backend-local
-    build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+    build: *backend-build
     working_dir: /app/backend
-    environment:
-      RAYA_TRADE_ENVIRONMENT: docker
-      API_PORT: ${API_PORT:-8085}
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_DB: ${REDIS_DB:-6}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-hjhsdg6f5t3r2u3g4r725trtg32rodvgsdb654}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-test-google-api-key}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
-      ADMIN_API_KEY: ${ADMIN_API_KEY:-local-test-admin-key}
-      CORS_ORIGINS: ${CORS_ORIGINS:-}
-      UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
+    environment: *backend-env
     depends_on:
       - redis
+    networks:
+      - aminyx_local
+
+  test:
+    container_name: aminyx-suggestion-agent-test
+    build: *backend-build
+    working_dir: /app/backend
+    environment: *backend-env
+    entrypoint: ["/app/backend/run_tests.sh"]
+    command: ["-v"]
     networks:
       - aminyx_local
 

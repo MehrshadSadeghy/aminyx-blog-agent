@@ -16,7 +16,7 @@ COPY backend/ ./backend/
 
 WORKDIR /app/backend
 
-RUN chmod +x /app/backend/entrypoint.sh
+RUN chmod +x /app/backend/entrypoint.sh /app/backend/run_tests.sh
 
 EXPOSE 8085
 

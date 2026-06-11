@@ -36,10 +36,14 @@ require_bearer -> Config.resolved_admin_api_key (all /api/v1/agent/* routes)
 
 ## Run Command
 
-`docker compose run` does **not** expand shell globs. Use one of these:
+`docker compose run` does **not** expand shell globs — `test/test_*_endpoints.py` is passed literally to pytest and fails.
 
 ```bash
-# Recommended — pytest.ini already targets crud + endpoint tests
+# Easiest — dedicated test service
+docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps test
+
+# Or script / pytest.ini on backend service
+docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend ./run_tests.sh -v
 docker compose -f docker-compose.local.yml --env-file .env run --rm --no-deps backend \
   pytest -c test/pytest.ini -v
 
