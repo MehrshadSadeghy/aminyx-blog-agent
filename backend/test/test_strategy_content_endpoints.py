@@ -27,7 +27,7 @@ pytestmark = pytest.mark.unit
 
 @pytest.mark.asyncio
 async def test_create_strategy_content_job_returns_202(
-    api_client: AsyncClient,
+    asgi_client: AsyncClient,
     auth_headers: dict[str, str],
     service_mocks: dict,
 ) -> None:
@@ -36,7 +36,7 @@ async def test_create_strategy_content_job_returns_202(
     service_mocks["strategy_content_service"].create_job = AsyncMock(return_value=job)
 
     # Act
-    response = await api_client.post(
+    response = await asgi_client.post(
         "/api/v1/agent/strategy-content",
         json=strategy_content_job_payload(),
         headers=auth_headers,
@@ -51,14 +51,14 @@ async def test_create_strategy_content_job_returns_202(
 
 @pytest.mark.asyncio
 async def test_create_strategy_content_job_rejects_missing_callback(
-    api_client: AsyncClient,
+    asgi_client: AsyncClient,
     auth_headers: dict[str, str],
 ) -> None:
     # Input: payload missing callback configuration
     payload = strategy_content_job_payload(include_callback=False)
 
     # Act
-    response = await api_client.post(
+    response = await asgi_client.post(
         "/api/v1/agent/strategy-content",
         json=payload,
         headers=auth_headers,
@@ -80,7 +80,7 @@ async def test_create_strategy_content_job_rejects_missing_callback(
 )
 @pytest.mark.asyncio
 async def test_create_strategy_content_job_rejects_invalid_enum_values(
-    api_client: AsyncClient,
+    asgi_client: AsyncClient,
     auth_headers: dict[str, str],
     field: str,
     value: str,
@@ -90,7 +90,7 @@ async def test_create_strategy_content_job_rejects_invalid_enum_values(
     payload[field] = value
 
     # Act
-    response = await api_client.post(
+    response = await asgi_client.post(
         "/api/v1/agent/strategy-content",
         json=payload,
         headers=auth_headers,
@@ -102,7 +102,7 @@ async def test_create_strategy_content_job_rejects_invalid_enum_values(
 
 @pytest.mark.asyncio
 async def test_get_strategy_content_job_returns_status_dto(
-    api_client: AsyncClient,
+    asgi_client: AsyncClient,
     auth_headers: dict[str, str],
     service_mocks: dict,
 ) -> None:
@@ -111,7 +111,7 @@ async def test_get_strategy_content_job_returns_status_dto(
     service_mocks["strategy_content_service"].get_job = AsyncMock(return_value=job)
 
     # Act
-    response = await api_client.get(
+    response = await asgi_client.get(
         f"/api/v1/agent/strategy-content/{job.id}",
         headers=auth_headers,
     )
@@ -127,7 +127,7 @@ async def test_get_strategy_content_job_returns_status_dto(
 
 @pytest.mark.asyncio
 async def test_get_strategy_content_job_returns_404_when_missing(
-    api_client: AsyncClient,
+    asgi_client: AsyncClient,
     auth_headers: dict[str, str],
     service_mocks: dict,
 ) -> None:
@@ -136,7 +136,7 @@ async def test_get_strategy_content_job_returns_404_when_missing(
     service_mocks["strategy_content_service"].get_job = AsyncMock(return_value=None)
 
     # Act
-    response = await api_client.get(
+    response = await asgi_client.get(
         f"/api/v1/agent/strategy-content/{missing_id}",
         headers=auth_headers,
     )
@@ -147,9 +147,9 @@ async def test_get_strategy_content_job_returns_404_when_missing(
 
 
 @pytest.mark.asyncio
-async def test_strategy_content_routes_require_authorization(api_client: AsyncClient) -> None:
+async def test_strategy_content_routes_require_authorization(asgi_client: AsyncClient) -> None:
     # Input: no auth header
-    response = await api_client.post(
+    response = await asgi_client.post(
         "/api/v1/agent/strategy-content",
         json=strategy_content_job_payload(),
     )

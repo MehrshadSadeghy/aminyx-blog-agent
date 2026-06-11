@@ -17,9 +17,9 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.mark.asyncio
-async def test_health_returns_ok_status(api_client: AsyncClient) -> None:
+async def test_health_returns_ok_status(asgi_client: AsyncClient) -> None:
     # Input: unauthenticated GET /health
-    response = await api_client.get("/health")
+    response = await asgi_client.get("/health")
 
     # Expected: 200 with status ok
     assert response.status_code == 200
